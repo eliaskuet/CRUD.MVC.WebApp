@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Entity;
+using System.Data.SqlClient;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -9,6 +10,8 @@ using System.Web;
 using System.Web.Mvc;
 using ClosedXML.Excel;
 using CRUD.MVC.WebApp.Models;
+using CRUD.MVC.WebApp.Utility;
+using Dapper;
 
 namespace CRUD.MVC.WebApp.Controllers
 {
@@ -50,13 +53,23 @@ namespace CRUD.MVC.WebApp.Controllers
         [ValidateAntiForgeryToken]
         public ActionResult Create([Bind(Include = "EmployeeId,EmployeeName,Address,IsActive")] EmployeeInfo employeeInfo)
         {
-            employeeInfo.CreationDate = DateTime.Now;
-            if (ModelState.IsValid)
+            IDbConnection _db = new SqlConnection(DbConfig.ConnectionString);
+            var query = @" EXEC [dbo].[InsertEmployeeInfo] @EmployeeName, @Address, @IsActive ";
+            var result = _db.QueryMultiple(query, new { EmployeeName = employeeInfo.EmployeeName, Address = employeeInfo.Address, IsActive = employeeInfo.IsActive });
+            var ids = result.Read<int>();
+
+            if (ids!=null && ids.Count()>0)
             {
-                db.EmployeeInfoes.Add(employeeInfo);
-                db.SaveChanges();
                 return RedirectToAction("Index");
             }
+
+            //employeeInfo.CreationDate = DateTime.Now;
+            //if (ModelState.IsValid)
+            //{
+            //    db.EmployeeInfoes.Add(employeeInfo);
+            //    db.SaveChanges();
+            //    return RedirectToAction("Index");
+            //}
 
             return View(employeeInfo);
         }
